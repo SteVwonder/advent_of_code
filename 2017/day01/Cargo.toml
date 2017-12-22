@@ -1,0 +1,12 @@
+[package]
+name = "day01"
+version = "0.1.0"
+authors = ["Stephen Herbein <stephen272@gmail.com>"]
+
+[dependencies]
+log = "*"
+env_logger = "*"
+
+[[bin]]
+name = "day01"
+path = "src/day01.rs"
