@@ -9,17 +9,12 @@ use std::path::Path;
 
 
 fn compare_and_cast (primary: char, secondary: char) -> u32 {
-    let mut val: u32 = 0;
-
     debug!("{} -> {}", primary, secondary);
     if primary == secondary {
-        debug!(" are equal");
-        val = primary.to_string().parse::<u32>().unwrap();
+        return primary.to_string().parse::<u32>().unwrap();
     } else {
-        debug!(" are not equal");
+        return 0;
     }
-
-    return val;
 }
 
 fn main() {
@@ -44,7 +39,7 @@ fn main() {
                                                    why.description()),
         Ok(_) => debug!("{}", captcha),
     }
-    let captcha = captcha.trim();
+    let captcha = captcha.trim(); // remove the trailing whitespace
 
     let mut sum: u32 = 0;
     for (primary_char, secondary_char) in captcha.chars().zip(captcha.chars().cycle().skip(1)) {
