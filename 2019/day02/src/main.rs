@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use itertools::Itertools;
 
 fn solve(mut state: Vec<u32>, test: bool) -> Vec<u32> {
     let mut pc: usize = 0;
@@ -48,7 +49,18 @@ fn main() {
     // AOC provides these magic numbers for Part 1
     program_v1[1] = 12;
     program_v1[2] = 2;
-    println!("End state: {:?}", solve(program_v1, false));
+    println!("Part 1: {}", solve(program_v1, false)[0]);
+    let upper_bound = (program_orig.len() - 1) as u32;
+    for combination in (0..upper_bound).combinations_with_replacement(2) {
+        if let [a, b] = combination[..] {
+            let mut program = program_orig.clone();
+            program[1] = a;
+            program[2] = b;
+            if solve(program, false)[0] == 19690720 {
+                println!("Part 2: {}", 100 * a + b);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
