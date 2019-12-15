@@ -1,9 +1,9 @@
+use itertools::Itertools;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use itertools::Itertools;
 
-#[derive(Debug,Hash,PartialEq,Eq,Clone,Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 struct Point {
     x: i32,
     y: i32,
@@ -24,7 +24,7 @@ impl std::fmt::Display for Point {
 #[derive(Debug)]
 struct Segment {
     start: Point, // lower-left most point (x & y are smaller/negative)
-    end: Point, // upper-right most point (x & y are larger)
+    end: Point,   // upper-right most point (x & y are larger)
 }
 
 impl Segment {
@@ -47,8 +47,7 @@ impl Segment {
             } else {
                 panic!("Points cannot be equal");
             }
-        }
-        else {
+        } else {
             panic!("Segments cannot be diagonal");
         }
     }
@@ -62,12 +61,16 @@ impl Segment {
         fn helper(horizontal: &Segment, vertical: &Segment) -> Option<Point> {
             let vert_x = vertical.start.x;
             let hor_y = horizontal.start.y;
-            if horizontal.start.x <= vert_x &&
-                horizontal.end.x >= vert_x &&
-                vertical.start.y <= hor_y &&
-                vertical.end.y >= hor_y {
-                    return Some(Point { x: vert_x, y: hor_y });
-                }
+            if horizontal.start.x <= vert_x
+                && horizontal.end.x >= vert_x
+                && vertical.start.y <= hor_y
+                && vertical.end.y >= hor_y
+            {
+                return Some(Point {
+                    x: vert_x,
+                    y: hor_y,
+                });
+            }
             return None;
         }
         if self.horizontal() {
@@ -96,7 +99,7 @@ impl std::fmt::Display for Segment {
 
 #[derive(Debug)]
 struct Wire {
-    segments: Vec<Segment>
+    segments: Vec<Segment>,
 }
 
 impl Wire {
@@ -106,13 +109,25 @@ impl Wire {
             let (direction, length_str) = instruction.split_at(1);
             (direction, length_str.parse::<i32>().unwrap())
         });
-        let mut curr_pos = Point{x: 0, y: 0};
+        let mut curr_pos = Point { x: 0, y: 0 };
         for (direction, length) in instructions {
             let new_pos: Point = match direction {
-                "U" => Point { x: curr_pos.x, y: curr_pos.y + length },
-                "D" => Point { x: curr_pos.x, y: curr_pos.y - length },
-                "R" => Point { x: curr_pos.x + length, y: curr_pos.y },
-                "L" => Point { x: curr_pos.x - length, y: curr_pos.y },
+                "U" => Point {
+                    x: curr_pos.x,
+                    y: curr_pos.y + length,
+                },
+                "D" => Point {
+                    x: curr_pos.x,
+                    y: curr_pos.y - length,
+                },
+                "R" => Point {
+                    x: curr_pos.x + length,
+                    y: curr_pos.y,
+                },
+                "L" => Point {
+                    x: curr_pos.x - length,
+                    y: curr_pos.y,
+                },
                 _ => panic!("Unknown direction ({})", direction),
             };
             segments.push(Segment::new(curr_pos, new_pos));
@@ -121,16 +136,22 @@ impl Wire {
         Wire { segments }
     }
     fn intersect(&self, other: Wire) -> Vec<Point> {
-        self.segments.iter().cartesian_product(other.segments.iter()).filter_map(|(a, b)| {
-            a.intersect(b)
-        }).filter(|point| *point != Point {x:0,y:0}).collect()
+        self.segments
+            .iter()
+            .cartesian_product(other.segments.iter())
+            .filter_map(|(a, b)| a.intersect(b))
+            .filter(|point| *point != Point { x: 0, y: 0 })
+            .collect()
     }
 }
 
 fn solve(wire1: Wire, wire2: Wire) -> u32 {
-    wire1.intersect(wire2).iter().map(|point| {
-        point.manhattan_distance(Point { x: 0, y: 0 })
-    }).min().unwrap()
+    wire1
+        .intersect(wire2)
+        .iter()
+        .map(|point| point.manhattan_distance(Point { x: 0, y: 0 }))
+        .min()
+        .unwrap()
 }
 
 fn main() {
@@ -169,10 +190,10 @@ mod tests {
 
     #[test]
     fn test_segment() {
-        let segment1 = Segment::new(Point {x: 0, y: 0}, Point {x: 5, y: 0});
+        let segment1 = Segment::new(Point { x: 0, y: 0 }, Point { x: 5, y: 0 });
         assert_eq!(segment1.horizontal(), true);
         assert_eq!(segment1.vertical(), false);
-        let segment2 = Segment::new(Point {x: 3, y: -2}, Point {x: 3, y: 4});
+        let segment2 = Segment::new(Point { x: 3, y: -2 }, Point { x: 3, y: 4 });
         assert_eq!(segment2.vertical(), true);
         assert_eq!(segment2.horizontal(), false);
         let mut intersection: Point = segment1.intersect(&segment2).unwrap();
@@ -182,7 +203,7 @@ mod tests {
         intersection = segment2.intersect(&segment1).unwrap();
         assert_eq!(intersection, expected);
 
-        let segment3 = Segment::new(Point {x: 4, y: 3}, Point {x: 4, y: 7});
+        let segment3 = Segment::new(Point { x: 4, y: 3 }, Point { x: 4, y: 7 });
         let result = segment1.intersect(&segment3);
         assert_eq!(result.is_none(), true);
     }
@@ -192,7 +213,9 @@ mod tests {
         let wire1 = Wire::from_string(&"R8,U5,L5,D3".to_string());
         let wire2 = Wire::from_string(&"U7,R6,D4,L4".to_string());
         let intersections: HashSet<Point> = wire1.intersect(wire2).into_iter().collect();
-        let expected: HashSet<Point> = vec![Point { x: 3, y: 3 }, Point { x: 6, y: 5 }].into_iter().collect();
+        let expected: HashSet<Point> = vec![Point { x: 3, y: 3 }, Point { x: 6, y: 5 }]
+            .into_iter()
+            .collect();
         assert_eq!(intersections, expected);
     }
 
@@ -202,7 +225,11 @@ mod tests {
         let reader = BufReader::new(file);
         for chunk in reader.lines().map(|l| l.unwrap()).chunks(3).into_iter() {
             let (wire1, wire2, answer) = match chunk.collect::<Vec<String>>().as_slice() {
-                [line1, line2, line3] => (Wire::from_string(line1), Wire::from_string(line2), line3.parse::<u32>().unwrap()),
+                [line1, line2, line3] => (
+                    Wire::from_string(line1),
+                    Wire::from_string(line2),
+                    line3.parse::<u32>().unwrap(),
+                ),
                 _ => panic!("Malformed input file"),
             };
             println!("solve({:?}, {:?}) == {}", wire1, wire2, answer);
