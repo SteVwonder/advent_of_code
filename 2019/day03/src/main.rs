@@ -208,13 +208,17 @@ fn solve_part2(wire1: &Wire, wire2: &Wire) -> u32 {
 fn main() {
     let file = File::open(Path::new("./input")).unwrap();
     let reader = BufReader::new(file);
-    for chunk in reader.lines().map(|l| l.unwrap()).chunks(2).into_iter() {
-        let (wire1, wire2) = match chunk.collect::<Vec<String>>().as_slice() {
-            [line1, line2] => (Wire::from_string(line1), Wire::from_string(line2)),
-            _ => panic!("Malformed input file"),
+    let mut lines = reader.lines().filter_map(Result::ok).map(|l| Wire::from_string(&l));
+    loop {
+        match (lines.next(), lines.next()) {
+            (Some(wire1), Some(wire2)) => {
+                println!("Part 1: {}", solve_part1(&wire1, &wire2));
+                println!("Part 2: {}", solve_part2(&wire1, &wire2));
+            },
+            (Some(wire1), None) => panic!("Malformed input, last wire: {:?}", wire1),
+            (None, None) => break,
+            _ => panic!(),
         };
-        println!("Part 1: {}", solve_part1(&wire1, &wire2));
-        println!("Part 2: {}", solve_part2(&wire1, &wire2));
     }
 }
 
