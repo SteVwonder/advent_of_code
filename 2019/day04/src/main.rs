@@ -39,11 +39,10 @@ fn only_two(digits: &Vec<u32>) -> bool {
 }
 
 fn solve_part1(candidates: &Vec<u32>) -> u32{
-    let valid_numbers: Vec<&u32> = candidates.iter().filter(|candidate| {
-        let digits = get_digits(**candidate);
+    candidates.iter().filter(|candidate: u32| {
+        let digits = get_digits(candidate);
         two_adjacent(&digits) && non_decreasing(&digits)
-    }).collect();
-    valid_numbers.len() as u32
+    }).count() as u32
 }
 
 fn solve_part2(candidates: &Vec<u32>) -> u32{
