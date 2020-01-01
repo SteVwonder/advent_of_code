@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::convert::TryInto;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
 #[derive(Debug)]
 struct State {
@@ -11,16 +13,16 @@ struct State {
     pc: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug,FromPrimitive)]
 enum Operation {
-    Add = 1,
-    Mul = 2,
-    Read = 3,
-    Write = 4,
-    JumpIfTrue = 5,
-    JumpIfFalse = 6,
-    LessThan = 7,
-    Equals = 8,
+    Add          = 1,
+    Mul          = 2,
+    Read         = 3,
+    Write        = 4,
+    JumpIfTrue   = 5,
+    JumpIfFalse  = 6,
+    LessThan     = 7,
+    Equals       = 8,
 }
 
 impl Operation {
@@ -70,38 +72,6 @@ impl Operation {
     }
 }
 
-impl From<u32> for Operation {
-    fn from(opcode: u32) -> Operation {
-        match opcode {
-            1 => {Operation::Add}
-            2 => {Operation::Mul},
-            3 => {Operation::Read},
-            4 => {Operation::Write},
-            5 => {Operation::JumpIfTrue},
-            6 => {Operation::JumpIfFalse},
-            7 => {Operation::LessThan},
-            8 => {Operation::Equals},
-            _ => panic!("Invalid operation code {}", opcode),
-        }
-    }
-}
-
-/*
-impl TryFrom<u32> for Operation {
-    type Error = &'static str;
-
-    fn try_from(opcode: u32) -> Result<Self, Self::Error> {
-        match opcode {
-            1 => {Ok(Operation::Add)}
-            2 => {Ok(Operation::Mul)},
-            3 => {Ok(Operation::Read)},
-            4 => {Ok(Operation::Write)},
-            _ => {Err("Invalid operation code {}", opcode)},
-        }
-    }
-}
-*/
-
 fn set_instruction_output_bit(operation: &Operation, instruction: &mut u32) {
     if !operation.last_arg_write() {return;}
     let base_ten_mask: u32 = 10_u32.pow(operation.num_args() as u32 - 1);
@@ -137,13 +107,12 @@ fn solve(state: &mut State, debug: bool) {
         };
         let opcode = instruction % 100;
         if opcode == 99 {return;};
-        let operation: Operation = match opcode.try_into() {
-            Ok(x) => x,
-            Err(x) => panic!(
-                "Failed parsing opcode ({}) from instruction ({}): {}",
+        let operation: Operation = match FromPrimitive::from_u32(opcode) {
+            Some(x) => x,
+            None => panic!(
+                "Failed parsing opcode ({}) from instruction ({})",
                 opcode,
                 instruction,
-                x
             ),
         };
         instruction /= 100;
