@@ -1,5 +1,5 @@
 [package]
-name = "day05"
+name = "intcode"
 version = "0.1.0"
 authors = ["Stephen Herbein <stephen272@gmail.com>"]
 edition = "2018"
@@ -9,4 +9,3 @@ edition = "2018"
 [dependencies]
 num-traits = "0.2"
 num-derive = "0.3"
-intcode = { path = "../intcode" }
