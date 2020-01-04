@@ -72,68 +72,69 @@ impl Operation {
     }
 }
 
-fn set_instruction_output_bit(operation: &Operation, instruction: &mut u32) {
-    if !operation.last_arg_write() {return;}
-    let base_ten_mask: u32 = 10_u32.pow(operation.num_args() as u32 - 1);
-    if (*instruction / (base_ten_mask)) % 10 == 0 {
-        *instruction += base_ten_mask
+impl State {
+    fn set_instruction_output_bit(operation: &Operation, instruction: &mut u32) {
+        if !operation.last_arg_write() {return;}
+        let base_ten_mask: u32 = 10_u32.pow(operation.num_args() as u32 - 1);
+        if (*instruction / (base_ten_mask)) % 10 == 0 {
+            *instruction += base_ten_mask
+        }
     }
-}
 
-fn parse_args(in_args: &[i32], state: &State, instruction: u32) -> Vec<i32> {
-    let num_args = in_args.len();
-    let mut args: Vec<i32> = Vec::with_capacity(num_args);
-    let mut instruction = instruction;
-    for idx in 0..num_args {
-        let value = in_args[idx as usize];
-        args.push(if instruction % 10 == 0 {
-            state.memory[value as usize]
-        } else {
-            value
-        });
-        instruction /= 10;
-    };
-    args
-}
-
-fn solve(state: &mut State, debug: bool) {
-    loop {
-        if state.pc >= state.memory.len() {
-            panic!("Program Counter larger than program");
-        }
-        let mut instruction: u32 = match state.memory[state.pc].try_into() {
-            Ok(x) => x,
-            Err(_x) => panic!("Found negative instruction"),
+    fn parse_args(&self, in_args: &[i32], instruction: u32) -> Vec<i32> {
+        let num_args = in_args.len();
+        let mut args: Vec<i32> = Vec::with_capacity(num_args);
+        let mut instruction = instruction;
+        for idx in 0..num_args {
+            let value = in_args[idx as usize];
+            args.push(if instruction % 10 == 0 {
+                self.memory[value as usize]
+            } else {
+                value
+            });
+            instruction /= 10;
         };
-        let opcode = instruction % 100;
-        if opcode == 99 {return;};
-        let operation: Operation = match FromPrimitive::from_u32(opcode) {
-            Some(x) => x,
-            None => panic!(
-                "Failed parsing opcode ({}) from instruction ({})",
-                opcode,
+        args
+    }
+
+    fn execute(&mut self, debug: bool) {
+        loop {
+            if self.pc >= self.memory.len() {
+                panic!("Program Counter larger than program");
+            }
+            let mut instruction: u32 = match self.memory[self.pc].try_into() {
+                Ok(x) => x,
+                Err(_x) => panic!("Found negative instruction"),
+            };
+            let opcode = instruction % 100;
+            if opcode == 99 {return;};
+            let operation: Operation = match FromPrimitive::from_u32(opcode) {
+                Some(x) => x,
+                None => panic!(
+                    "Failed parsing opcode ({}) from instruction ({})",
+                    opcode,
+                    instruction,
+                ),
+            };
+            instruction /= 100;
+            State::set_instruction_output_bit(&operation, &mut instruction);
+            let args = self.parse_args(
+                &self.memory[
+                    self.pc + 1
+                        ..
+                        self.pc + 1 + operation.num_args()
+                ],
                 instruction,
-            ),
-        };
-        instruction /= 100;
-        set_instruction_output_bit(&operation, &mut instruction);
-        let args = parse_args(
-            &state.memory[
-                state.pc + 1
-                    ..
-                    state.pc + 1 + operation.num_args()
-            ],
-            state,
-            instruction,
-        );
-        if debug {
-            println!("({:?})", operation);
-            println!("\tArgs: {:?}, Raw Args: {:?}", args, &state.memory[(state.pc+1)..(state.pc+1+operation.num_args())]);
-            print!("\t{:?}", state);
-        }
-        operation.run(state, args);
-        if debug {
-            println!(" -> {:?}", state);
+            );
+            if debug {
+                println!("({:?})", operation);
+                println!("\tArgs: {:?}, Raw Args: {:?}", args, &self.memory[(self.pc+1)..(self.pc+1+operation.num_args())]);
+                print!("\t{:?}", self);
+            }
+            operation.run(self, args);
+            if debug {
+                println!(" -> {:?}", self);
+            }
         }
     }
 }
@@ -157,7 +158,7 @@ fn main() {
         output: Vec::new(),
         pc: 0,
     };
-    solve(&mut state_v1, false);
+    state_v1.execute(false);
     for (idx, &output) in state_v1.output[0..state_v1.output.len() - 1].iter().enumerate() {
         if output != 0 {
             println!("Memory idx {} is {} (not 0)", idx, output);
@@ -170,7 +171,7 @@ fn main() {
         output: Vec::new(),
         pc: 0,
     };
-    solve(&mut state_v2, false);
+    state_v2.execute(false);
     println!("Part 2: {}", state_v2.output[0]);
 }
 
@@ -194,7 +195,7 @@ mod tests {
                 output: Vec::new(),
                 pc: 0,
             };
-            solve(&mut state, true);
+            state.execute(true);
             assert_eq!(
                 state.memory,
                 parse_line(&expected),
@@ -222,7 +223,7 @@ mod tests {
                 output: Vec::new(),
                 pc: 0,
             };
-            solve(&mut state, true);
+            state.execute(true);
             assert_eq!(
                 state.output,
                 output,
