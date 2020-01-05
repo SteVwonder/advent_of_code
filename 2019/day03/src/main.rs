@@ -34,7 +34,7 @@ struct Segment {
 }
 
 impl Segment {
-    fn new(a: Point, b: Point) -> Segment {
+    fn new(a: Point, b: Point) -> Self {
         if a == b {
             panic!("Points in a segment cannot be equal");
         } else if a.x != b.x && a.y != b.y {

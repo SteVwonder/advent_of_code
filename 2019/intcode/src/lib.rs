@@ -74,7 +74,7 @@ impl Operation {
 }
 
 impl Intcode {
-    pub fn new(memory: Vec<i32>, input: Vec<i32>) -> Intcode {
+    pub fn new(memory: Vec<i32>, input: Vec<i32>) -> Self {
         Intcode {
             memory: memory,
             input: input,
