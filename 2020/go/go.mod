@@ -1,4 +1,4 @@
-module github.com/stevwonder/advent_of_code/2020/go/day02/v2
+module github.com/stevwonder/advent_of_code/2020/go/v2
 
 go 1.16
 

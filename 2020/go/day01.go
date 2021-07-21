@@ -5,20 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
+	"strings"
+
+	"lukechampine.com/advent/utils"
 )
 
-func parse(filename string) []int {
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
+func parse(input string) []int {
 	var vals []int
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
 		val, err := strconv.Atoi(scanner.Text())
 		if err != nil {
@@ -60,14 +56,15 @@ func part2(vals []int) (int, error) {
 }
 
 func main() {
-	input := parse("./input")
-	val, err := part1(input)
+	input := utils.Input(2020, 1)
+	vals := parse(input)
+	val, err := part1(vals)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(val)
 
-	val, err = part2(input)
+	val, err = part2(vals)
 	if err != nil {
 		log.Fatal(err)
 	}
