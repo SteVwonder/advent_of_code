@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Copy)]
 enum Seat {
     Floor,
     Empty,
@@ -53,17 +53,46 @@ impl std::fmt::Display for Map {
 }
 
 impl Map {
-    fn is_occupied(&self, row: i32, col: i32) -> u8 {
+    fn get_value(&self, row: i32, col: i32) -> Option<Seat> {
         if col >= self.width as i32 || row >= self.height as i32 || row < 0 || col < 0 {
-            return 0;
+            return None;
         }
-        (*self
-            .data
-            .get(row as usize)
-            .unwrap()
-            .get(col as usize)
-            .unwrap()
-            == Seat::Occupied) as u8
+        Some(
+            *self
+                .data
+                .get(row as usize)
+                .unwrap()
+                .get(col as usize)
+                .unwrap(),
+        )
+    }
+
+    fn is_occupied(&self, row: i32, col: i32) -> Option<u8> {
+        self.get_value(row, col)
+            .map(|x| (x == Seat::Occupied) as u8)
+    }
+
+    fn dir_is_occupied(&self, pos: (i32, i32), dir: (i32, i32)) -> Option<u8> {
+        let mut curr_pos = (pos.0 + dir.0, pos.1 + dir.1);
+        //println!("\tDirection {:?}", dir);
+        while let Some(value) = self.get_value(curr_pos.0, curr_pos.1) {
+            match value {
+                Seat::Floor => {}
+                Seat::Empty => {
+                    //println!("\t\tEmpty");
+                    return Some(0);
+                }
+                Seat::Occupied => {
+                    //println!("\t\tOccupied");
+                    return Some(1);
+                }
+            }
+            curr_pos.0 += dir.0;
+            curr_pos.1 += dir.1;
+            //println!("\tNew pos {:?}", curr_pos);
+        }
+        //println!("\t\tOut Of Bounds");
+        None
     }
 }
 
@@ -92,18 +121,30 @@ fn get_map(input: &str) -> Result<Map> {
     Ok(ret)
 }
 
-fn count_neighbors(map: &Map, row: i32, col: i32) -> u8 {
-    map.is_occupied(row - 1, col)
-        + map.is_occupied(row + 1, col)
-        + map.is_occupied(row - 1, col - 1)
-        + map.is_occupied(row, col - 1)
-        + map.is_occupied(row + 1, col - 1)
-        + map.is_occupied(row - 1, col + 1)
-        + map.is_occupied(row, col + 1)
-        + map.is_occupied(row + 1, col + 1)
+fn count_neighbors1(map: &Map, row: i32, col: i32) -> u8 {
+    map.is_occupied(row - 1, col).unwrap_or(0)
+        + map.is_occupied(row + 1, col).unwrap_or(0)
+        + map.is_occupied(row - 1, col - 1).unwrap_or(0)
+        + map.is_occupied(row, col - 1).unwrap_or(0)
+        + map.is_occupied(row + 1, col - 1).unwrap_or(0)
+        + map.is_occupied(row - 1, col + 1).unwrap_or(0)
+        + map.is_occupied(row, col + 1).unwrap_or(0)
+        + map.is_occupied(row + 1, col + 1).unwrap_or(0)
 }
 
-fn evolve(map: &Map, new_map: &mut Map) {
+fn count_neighbors2(map: &Map, row: i32, col: i32) -> u8 {
+    //println!("Position ({}, {})", row, col);
+    map.dir_is_occupied((row, col), (-1, 0)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (0, -1)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (0, 1)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (1, 0)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (1, -1)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (-1, 1)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (-1, -1)).unwrap_or(0)
+        + map.dir_is_occupied((row, col), (1, 1)).unwrap_or(0)
+}
+
+fn evolve1(map: &Map, new_map: &mut Map) {
     new_map.clone_from(map);
 
     for (row_idx, row) in map.data.iter().enumerate() {
@@ -111,11 +152,37 @@ fn evolve(map: &Map, new_map: &mut Map) {
             if *value == Seat::Floor {
                 continue;
             }
-            let num_neighbors = count_neighbors(map, row_idx as i32, col_idx as i32);
+            let num_neighbors = count_neighbors1(map, row_idx as i32, col_idx as i32);
             let new_value = match num_neighbors {
                 1..=3 => continue,
                 0 => Seat::Occupied,
                 4..=8 => Seat::Empty,
+                _ => panic!("How did you get 9 neighbors on an 2D surface?"),
+            };
+
+            *new_map
+                .data
+                .get_mut(row_idx)
+                .unwrap()
+                .get_mut(col_idx)
+                .unwrap() = new_value;
+        }
+    }
+}
+
+fn evolve2(map: &Map, new_map: &mut Map) {
+    new_map.clone_from(map);
+
+    for (row_idx, row) in map.data.iter().enumerate() {
+        for (col_idx, value) in row.iter().enumerate() {
+            if *value == Seat::Floor {
+                continue;
+            }
+            let num_neighbors = count_neighbors2(map, row_idx as i32, col_idx as i32);
+            let new_value = match num_neighbors {
+                1..=4 => continue,
+                0 => Seat::Occupied,
+                5..=8 => Seat::Empty,
                 _ => panic!("How did you get 9 neighbors on an 2D surface?"),
             };
 
@@ -135,7 +202,7 @@ fn part1(input: &str) -> Result<usize> {
 
     //println!("{}", new_map);
     loop {
-        evolve(&map, &mut new_map);
+        evolve1(&map, &mut new_map);
         if map == new_map {
             break;
         }
@@ -143,9 +210,32 @@ fn part1(input: &str) -> Result<usize> {
         swap(&mut map, &mut new_map);
     }
 
-    Ok(map.data.iter().flatten().filter(|&x| *x == Seat::Occupied).count())
+    Ok(map
+        .data
+        .iter()
+        .flatten()
+        .filter(|&x| *x == Seat::Occupied)
+        .count())
 }
 
-fn part2(input: &str) -> Result<u32> {
-    Ok(0)
+fn part2(input: &str) -> Result<usize> {
+    let mut map = get_map(input)?;
+    let mut new_map = map.clone();
+
+    //println!("{}", new_map);
+    loop {
+        evolve2(&map, &mut new_map);
+        if map == new_map {
+            break;
+        }
+        //println!("{}", new_map);
+        swap(&mut map, &mut new_map);
+    }
+
+    Ok(map
+        .data
+        .iter()
+        .flatten()
+        .filter(|&x| *x == Seat::Occupied)
+        .count())
 }
