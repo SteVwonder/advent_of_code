@@ -11,9 +11,9 @@ func TestRun(t *testing.T) {
 
 	val, err := part1(vals)
 	assert.NoError(t, err)
-	assert.Equal(t, val, 24000)
+	assert.Equal(t, 24000, val)
 
 	val, err = part2(vals)
 	assert.NoError(t, err)
-	assert.Equal(t, val, 5)
+	assert.Equal(t, 45000, val)
 }

@@ -47,6 +47,7 @@ func getElves(vals []int) []int {
 			curr_calories += val
 		}
 	}
+	elves = append(elves, curr_calories)
 	return elves
 }
 
