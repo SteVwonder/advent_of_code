@@ -68,11 +68,7 @@ func part2(vals []int) (int, error) {
 	elves := getElves(vals)
 	sort.Ints(elves)
 	top3 := elves[len(elves)-3 : len(elves)]
-	sum := 0
-	for _, i := range top3 {
-		sum += i
-	}
-	return sum, nil
+	return utils.Sum(top3), nil
 }
 
 func GetVals(test bool) []int {

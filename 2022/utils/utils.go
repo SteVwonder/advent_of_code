@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"golang.org/x/exp/constraints"
+
 	"github.com/integralist/go-findroot/find"
 )
 
@@ -84,12 +86,20 @@ func ReadInput(filename string) (string, error) {
 	return string(bytes.TrimSpace(data)), nil
 }
 
-func Max(arg ...int) int {
-	curr_max := arg[0]
-	for _, i := range arg[1:] {
-		if i > curr_max {
-			curr_max = i
+func Max[T constraints.Ordered](arg ...T) T {
+	var curr_max T = arg[0]
+	for _, x := range arg[1:] {
+		if x > curr_max {
+			curr_max = x
 		}
 	}
 	return curr_max
+}
+
+func Sum[T constraints.Integer](s []T) T {
+	var accum T
+	for _, val := range s {
+		accum += val
+	}
+	return accum
 }
