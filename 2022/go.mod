@@ -1,4 +1,4 @@
-module github.com/stevwonder/advent_of_code/2021/v1
+module github.com/stevwonder/advent_of_code/2022/v1
 
 go 1.19
 
