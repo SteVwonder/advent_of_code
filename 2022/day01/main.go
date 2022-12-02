@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -15,10 +16,15 @@ func parse(input string) []int {
 
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
-		val, err := strconv.Atoi(scanner.Text())
-		if err != nil {
-			log.Printf("%s", err.Error())
-			val = -1
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		val := -1
+		if line != "" {
+			var err error
+			val, err = strconv.Atoi(line)
+			if err != nil {
+				log.Fatalf("%s", err.Error())
+			}
 		}
 		vals = append(vals, val)
 	}
@@ -30,11 +36,7 @@ func parse(input string) []int {
 	return vals
 }
 
-func part1(vals []int) (int, error) {
-	if len(vals) == 0 {
-		return -1, fmt.Errorf("Vals must be longer than 0")
-	}
-
+func getElves(vals []int) []int {
 	elves := []int{}
 	curr_calories := 0
 	for _, val := range vals {
@@ -45,12 +47,31 @@ func part1(vals []int) (int, error) {
 			curr_calories += val
 		}
 	}
+	return elves
+}
 
-	return utils.Max(elves), nil
+func part1(vals []int) (int, error) {
+	if len(vals) == 0 {
+		return -1, fmt.Errorf("Vals must be longer than 0")
+	}
+
+	elves := getElves(vals)
+	return utils.Max(elves...), nil
 }
 
 func part2(vals []int) (int, error) {
-	return 0, fmt.Errorf("Not implemented")
+	if len(vals) == 0 {
+		return -1, fmt.Errorf("Vals must be longer than 0")
+	}
+
+	elves := getElves(vals)
+	sort.Ints(elves)
+	top3 := elves[len(elves)-3 : len(elves)]
+	sum := 0
+	for _, i := range top3 {
+		sum += i
+	}
+	return sum, nil
 }
 
 func GetVals(test bool) []int {
