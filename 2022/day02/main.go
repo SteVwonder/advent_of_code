@@ -90,22 +90,14 @@ func part2(vals [][]string) (int, error) {
 	totalScore := 0
 	for _, moves := range vals {
 		switch moves[1] {
-		case "X":
-			{ // Lose
-				totalScore += movePoints[losingMove[moves[0]]]
-			}
-		case "Y":
-			{ // Draw
-				totalScore += movePoints[tieingMove[moves[0]]] + 3
-			}
-		case "Z":
-			{ // Win
-				totalScore += movePoints[winningMove[moves[0]]] + 6
-			}
+		case "X": // Lose
+			totalScore += movePoints[losingMove[moves[0]]]
+		case "Y": // Draw
+			totalScore += movePoints[tieingMove[moves[0]]] + 3
+		case "Z": // Win
+			totalScore += movePoints[winningMove[moves[0]]] + 6
 		default:
-			{
-				return 0, fmt.Errorf("Unknown target state")
-			}
+			return 0, fmt.Errorf("Unknown target state")
 		}
 	}
 
