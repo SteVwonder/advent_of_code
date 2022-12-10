@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -83,7 +82,7 @@ func ReadInput(filename string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bytes.TrimSpace(data)), nil
+	return string(data), nil
 }
 
 func Max[T constraints.Ordered](arg ...T) T {
