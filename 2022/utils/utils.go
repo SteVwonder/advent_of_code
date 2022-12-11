@@ -95,6 +95,16 @@ func Max[T constraints.Ordered](arg ...T) T {
 	return curr_max
 }
 
+func Min[T constraints.Ordered](arg ...T) T {
+	var curr_min T = arg[0]
+	for _, x := range arg[1:] {
+		if x < curr_min {
+			curr_min = x
+		}
+	}
+	return curr_min
+}
+
 func Sum[T constraints.Integer](s []T) T {
 	var accum T
 	for _, val := range s {
