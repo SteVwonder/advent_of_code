@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"golang.org/x/exp/constraints"
@@ -111,4 +112,25 @@ func Sum[T constraints.Integer](s []T) T {
 		accum += val
 	}
 	return accum
+}
+
+func Map[X any, Y any](in []X, f func(X) (Y, error)) ([]Y, error) {
+	out := make([]Y, len(in))
+	for i, x := range in {
+		y, err := f(x)
+		if err != nil {
+			return out, err
+		}
+		out[i] = y
+	}
+	return out, nil
+}
+
+func Reversed[T comparable](s []T) []T {
+	out := make([]T, len(s))
+	copy(out, s)
+	sort.SliceStable(out, func(i, j int) bool {
+		return i > j
+	})
+	return out
 }
