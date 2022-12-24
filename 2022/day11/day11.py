@@ -4,7 +4,8 @@ import re
 from collections.abc import Mapping, Callable
 from dataclasses import dataclass, field
 import math
-from operator import mul, add
+from operator import mul, add, floordiv, mod
+from functools import reduce
 
 @dataclass
 class Monkey:
@@ -21,28 +22,28 @@ class Monkey:
     def from_regex_matches(match):
         groups = match.groups()
         items = [int(x) for x in groups[1].split(", ")]
-        if groups[3] == 'old':
-            operator = math.pow
-            operand = 2
-        elif groups[2] == "*":
+        if groups[2] == "*":
             operator = mul
-            operand = int(groups[3])
         elif groups[2] == "+":
             operator = add
-            operand = int(groups[3])
         else:
-            raise RuntimeError("Unknown operator/operand combo")
+            raise RuntimeError("Unknown operator combo")
+        if groups[3] == "old":
+            operand = None
+        else:
+            operand = int(groups[3])
         return Monkey(
             groups[0], items,
             operator, operand,
             int(groups[4]), int(groups[5]), int(groups[6])
         )
 
-    def inspect_items(self, monkeys):
+    def inspect_items(self, monkeys, worry_op, worry_reduction):
         while len(self.items) > 0:
             item = self.items.pop(0)
             self.items_inspected += 1
-            new_worry = int(self.operator(item, self.operand) // 3)
+            operand = self.operand if self.operand else item
+            new_worry = int(worry_op(self.operator(item, operand), worry_reduction))
             if new_worry % self.test_divisor == 0:
                 monkeys[self.true_target].items.append(new_worry)
             else:
@@ -67,7 +68,7 @@ def part1(lines):
     assert len(monkeys) > 0
     for round in range(1, 21):
         for monkey in monkeys:
-            monkey.inspect_items(monkeys)
+            monkey.inspect_items(monkeys, floordiv, 3)
         logging.debug(f'==========ROUND {round}==========')
         for monkey in monkeys:
             logging.debug(f'\t{monkey}')
@@ -76,7 +77,21 @@ def part1(lines):
 
 
 def part2(lines):
-    pass
+    monkeys = []
+    for match in monkey_re.finditer("\n".join(lines)):
+        monkeys.append(Monkey.from_regex_matches(match))
+        logging.debug(f'Monkey: {monkeys[-1]}')
+    assert len(monkeys) > 0
+    worry_reduction = math.lcm(*[m.test_divisor for m in monkeys])
+    for round in range(1, 10_001):
+        for monkey in monkeys:
+            monkey.inspect_items(monkeys, mod, worry_reduction)
+        if round == 1 or round == 20 or round % 1000 == 0:
+            logging.debug(f'==========ROUND {round}==========')
+            for monkey in monkeys:
+                logging.debug(f'\t{monkey.items_inspected}')
+    items_inspected = sorted([m.items_inspected for m in monkeys], reverse=True)
+    return items_inspected[0] * items_inspected[1]
 
 
 def main():
@@ -105,6 +120,7 @@ def main():
     if not args.test:
         from aocd import submit
         submit(a, part='a')
+        submit(b, part='b')
 
 if __name__ == "__main__":
     main()
