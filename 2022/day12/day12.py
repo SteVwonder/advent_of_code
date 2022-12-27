@@ -22,6 +22,16 @@ def traversable(heightA, heightB):
     return b - a <= 1
 
 
+def get_value(lines, row, col) -> (str, str):
+    real_val = lines[row][col]
+    if real_val == "S":
+        val = "a"
+    elif real_val == "E":
+        val = "z"
+    else:
+        val = real_val
+    return val, real_val
+
 def parse(lines, args) -> (nx.DiGraph, int, int):
     rows = len(lines)
     cols = len(lines[0])
@@ -36,13 +46,11 @@ def parse(lines, args) -> (nx.DiGraph, int, int):
     for idx in range(nodes):
         row = idx // cols
         col = idx % cols
-        val = lines[row][col]
-        if val == "S":
+        val, real_val = get_value(lines, row, col)
+        if real_val == "S":
             start_idx = idx
-            val = "a"
-        elif val == "E":
+        elif real_val == "E":
             end_idx = idx
-            val = "z"
         neighbors = [(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
         neighbors = [n for n in neighbors if
                      ((n[0] >= 0) and (n[0] < rows) and
@@ -51,7 +59,7 @@ def parse(lines, args) -> (nx.DiGraph, int, int):
         labels[idx] = val
         for n in neighbors:
             neighbor_idx = (n[0] * cols) + n[1]
-            neighbor_val = lines[n[0]][n[1]]
+            neighbor_val, _ = get_value(lines, n[0], n[1]) 
             if traversable(val, neighbor_val):
                 logging.debug("({}, {}): {} -> {}".format(idx, neighbor_idx, val, neighbor_val))
                 graph.add_edge(idx, neighbor_idx)
@@ -75,8 +83,20 @@ def part1(lines, args) -> int:
     return len(path) - 1
 
 
-def part2(lines):
-    pass
+def part2(lines, args):
+    graph, start, end = parse(lines, args)
+    paths = nx.shortest_path(graph, target=end)
+    min_dist = graph.number_of_nodes()
+    cols = len(lines[0])
+    for start_idx, path in paths.items():
+        row = start_idx // cols
+        col = start_idx % cols
+        val, _ = get_value(lines, row, col)
+        if val == 'a':
+            logging.debug(f'Testing {start_idx: >4d} -> {end} ({len(path) - 1: >3d})')
+            if (len(path) - 1) < min_dist:
+                min_dist = (len(path) - 1)
+    return min_dist
 
 
 def main():
@@ -99,7 +119,7 @@ def main():
         from aocd import lines
 
     a = part1(lines, args)
-    b = part2(lines)
+    b = part2(lines, args)
 
     print(a)
     print(b)
