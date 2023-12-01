@@ -63,11 +63,45 @@ def rate_of_release(curr_pos: str, G: nx.DiGraph, open: frozenset[str], minutes_
     return best_ror, best_open
 
 
+def open_valves(G: nx.DiGraph, starting_positions: tuple[str], minutes_left: int) -> tuple[int, set[str]]:
+    current_positions = starting_positions
+    open_valves = set()
+    pressure_released = 0
+    rate_of_releases = nx.get_node_attributes(G, "rate")
+    all_valves = set(G.nodes)
+    zero_valves = set((valve for valve in all_valves if rate_of_releases[valve] == 0))
+
+    distances = nx.floyd_warshall(G)
+
+    while minutes_left > 1:
+        logging.debug(f'[{minutes_left} {current_positions}] new loop')
+        curr_pos_set = set(current_positions)
+        target_valves = all_valves - open_valves - zero_valves
+        for targets in itertools.product(target_valves, repeat=len(starting_positions)):
+            logging.debug(f'[{minutes_left} {current_positions}] {targets}')
+            curr_ror = 0
+            temp_open_valves = set()
+            for source_idx, target in enumerate(targets):
+                source = current_positions[source_idx]
+                if target in temp_open_valves:
+                    continue
+                if target in curr_pos_set:
+                    cost = 1
+                else:
+                    cost = distances[source][target] + 1
+                curr_ror += rate_of_releases[target] * (minutes_left - cost)
+                temp_open_valves.add(target)
+        minutes_left -= 1
+
+    return pressure_released, open_valves
+
+
 def part1(lines, args) -> int:
     G = parse(lines)
     if args.plot:
         plot(G)
-    ror, _ = rate_of_release("AA", G, frozenset(), 30)
+    #ror, _ = rate_of_release("AA", G, frozenset(), 30)
+    ror, _ = open_valves(G, ["AA"], 30)
     return ror
 
 
@@ -171,9 +205,10 @@ def main():
     else:
         from aocd import lines
 
-    a = None
-    #a = part1(lines, args)
-    b = part2(lines, args)
+    #a = None
+    a = part1(lines, args)
+    b = None
+    #b = part2(lines, args)
 
     print(a)
     print(b)
