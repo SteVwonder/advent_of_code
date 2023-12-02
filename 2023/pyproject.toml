@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "advent-of-code-2023"
+version = "0.1.0"
+description = ""
+authors = ["Stephen Herbein <stephen@herbein.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+pyright = "^1.1.338"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
