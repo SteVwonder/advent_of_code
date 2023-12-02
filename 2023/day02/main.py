@@ -1,7 +1,8 @@
 import argparse
 from collections import defaultdict
 
-type Game = list[dict[str, int]]
+type Bag = dict[str, int]
+type Game = list[Bag]
 
 target_bag = {
     'red': 12,
@@ -14,6 +15,16 @@ def game_is_possible(game: Game) -> bool:
             if count > target_bag[color]:
                 return False
     return True
+
+def minimum_cubes(game: Game) -> Bag:
+    minimum_bag = defaultdict(int)
+    for round in game:
+        for color, count in round.items():
+            minimum_bag[color] = max(minimum_bag[color], count)
+    return minimum_bag
+
+def cube_power(bag: Bag) -> int:
+    return bag['red'] * bag['green'] * bag['blue']
 
 def parse_line(line: str) -> tuple[int, Game]:
     game = []
@@ -28,7 +39,7 @@ def parse_line(line: str) -> tuple[int, Game]:
     return game_id, game
 
 def main(args):
-    score = 0
+    score = [0, 0]
     with open(args.input_file) as fp:
         for line in fp:
             game_id, game = parse_line(line)
@@ -36,8 +47,10 @@ def main(args):
             if args.verbose:
                 print(possible, game_id, game)
             if possible:
-                score += game_id
-    print(score)
+                score[0] += game_id
+            score[1] += cube_power(minimum_cubes(game))
+    print(score[0])
+    print(score[1])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
