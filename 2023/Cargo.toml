@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 
 members = [
         "day04",
@@ -6,4 +7,5 @@ members = [
         "day06",
         "day07",
         "day08",
+        "day08-graph",
 ]
