@@ -9,4 +9,5 @@ members = [
         "day08",
         "day08-graph",
         "day09",
+        "day10",
 ]
