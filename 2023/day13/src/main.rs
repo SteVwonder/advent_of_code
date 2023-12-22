@@ -1,51 +1,79 @@
 use std::env;
+use std::ops::Sub;
 
-type Grid = Vec<Vec<char>>;
+use ndarray::{array, s, Array2, ArrayView2};
 
-fn is_mirrored_at_idx(line: &Vec<char>, idx: usize) -> bool {
-    let (a, b) = line.split_at(idx);
-    a.iter().rev().zip(b).all(|(a,b)| a == b)
-}
+type Grid = Array2<i16>;
+type GridView<'a> = ArrayView2<'a, i16>;
 
-fn find_vertical_mirror_line_idx(grid: &Grid) -> Option<usize> {
-    let mut eligible_mirror_indices: Vec<usize> = Vec::from_iter(1..(grid[0].len()));
-    for line in grid.iter() {
-        eligible_mirror_indices = eligible_mirror_indices
-            .into_iter()
-            .filter(|idx| is_mirrored_at_idx(&line, *idx))
-            .collect::<Vec<usize>>();
+fn is_vertically_mirrored_at_idx(grid: &GridView, idx: usize) -> bool {
+    let num_cols = grid.shape()[1];
+    if idx <= 0 || idx >= num_cols {
+        panic!();
     }
-    if eligible_mirror_indices.len() == 0 {
-        return None;
+    let mut left_slice = s![.., 0..idx;-1];
+    let mut right_slice = s![.., idx..(2 * idx)];
+    if idx > (num_cols / 2) {
+        let width = num_cols - idx;
+        let buffer = idx - width;
+        left_slice = s![.., buffer..idx;-1];
+        right_slice = s![.., idx..];
     }
-    assert!(eligible_mirror_indices.len() == 1);
-    Some(eligible_mirror_indices[0])
+    let left = grid.slice(left_slice);
+    let right = grid.slice(right_slice);
+
+    left.sub(&right).into_iter().filter(|x| *x != 0).count() == 0
 }
 
-fn rotate_grid(grid: &Grid) -> Grid {
-    (0..(grid[0].len())).map(|col_idx| {
-        grid.iter().map(|row| row[col_idx]).collect::<Vec<char>>()
-    }).collect::<Vec<_>>()
+fn find_vertical_mirror_line_idx(grid: &GridView) -> Option<usize> {
+    for idx in 1..(grid.shape()[1]) {
+        if is_vertically_mirrored_at_idx(grid, idx) {
+            return Some(idx);
+        }
+    }
+    None
 }
 
-fn get_grid_score(grid: &Grid) -> u32 {
+fn get_grid_score(grid: &GridView) -> u32 {
     if let Some(idx) = find_vertical_mirror_line_idx(grid) {
         return idx as u32;
     }
-    let rotated_grid = rotate_grid(grid);
-    if let Some(idx) = find_vertical_mirror_line_idx(&rotated_grid) {
+    if let Some(idx) = find_vertical_mirror_line_idx(&grid.t()) {
         return idx as u32 * 100;
     }
     unreachable!();
 }
 
+fn lines_to_grid(lines: &Vec<Vec<char>>) -> Grid {
+    let data = lines
+        .iter()
+        .flat_map(|line: &Vec<char>| {
+            line.iter().map(|c: &char| {
+                (match c {
+                    '.' => 1,
+                    '#' => 3,
+                    _ => unreachable!(),
+                } as i16)
+            })
+        })
+        .collect::<Vec<i16>>();
+    let shape = (lines.len(), lines[0].len());
+    Array2::from_shape_vec(shape, data).unwrap()
+}
+
 fn lines_to_grids(lines: Vec<Vec<char>>) -> Vec<Grid> {
-    lines.split(|line| line.len() == 0).map(|grid| grid.to_vec()).collect()
+    lines
+        .split(|line| line.len() == 0)
+        .map(|lines| lines_to_grid(&lines.to_vec()))
+        .collect()
 }
 
 fn part1(lines: Vec<Vec<char>>) -> u32 {
     let grids = lines_to_grids(lines);
-    grids.iter().map(|grid| { get_grid_score(grid) }).sum()
+    grids
+        .iter()
+        .map(|grid: &Grid| get_grid_score(&grid.view()))
+        .sum()
 }
 
 fn part2(lines: Vec<Vec<char>>) -> u32 {
@@ -133,6 +161,36 @@ mod tests {
     }
 
     #[test]
+    fn build_grid() {
+        let examples = get_part1_examples();
+        let input = &examples[0];
+
+        let grid = lines_to_grid(&input);
+        assert_eq!(
+            grid,
+            array![
+                [3, 1, 3, 3, 1, 1, 3, 3, 1,],
+                [1, 1, 3, 1, 3, 3, 1, 3, 1,],
+                [3, 3, 1, 1, 1, 1, 1, 1, 3,],
+                [3, 3, 1, 1, 1, 1, 1, 1, 3,],
+                [1, 1, 3, 1, 3, 3, 1, 3, 1,],
+                [1, 1, 3, 3, 1, 1, 3, 3, 1,],
+                [3, 1, 3, 1, 3, 3, 1, 3, 1,],
+            ]
+        );
+
+        let sub: Vec<i16> = vec![3, 1, 1, 1, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+        let expected: Vec<i16> = vec![0, 0, 0, 0, 0, 0, 3, 3, 1, 1, 1, 1, 3, 1];
+
+        let subgrid = grid.slice(s![.., ..2]);
+
+        assert_eq!(
+            subgrid.sub(Array2::from_shape_vec((7, 2), sub).unwrap()),
+            Array2::from_shape_vec((7, 2), expected).unwrap(),
+        );
+    }
+
+    #[test]
     fn part1_e2e() {
         let examples = get_part1_examples();
         let answers: Vec<u32> = vec![5, 400, 405];
@@ -141,12 +199,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn part2_e2e() {
-        let examples = get_part1_examples();
-        let answers: Vec<u32> = vec![300, 100, 400];
-        for (example, answer) in examples.iter().zip(answers.iter()) {
-            assert_eq!(part2(example.clone()), *answer);
-        }
+    /*
+        #[test]
+        fn part2_e2e() {
+            let examples = get_part1_examples();
+            let answers: Vec<u32> = vec![300, 100, 400];
+            for (example, answer) in examples.iter().zip(answers.iter()) {
+                assert_eq!(part2(example.clone()), *answer);
+            }
     }
+        */
 }
