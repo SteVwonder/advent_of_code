@@ -6,7 +6,7 @@ use ndarray::{array, s, Array2, ArrayView2};
 type Grid = Array2<i16>;
 type GridView<'a> = ArrayView2<'a, i16>;
 
-fn is_vertically_mirrored_at_idx(grid: &GridView, idx: usize) -> bool {
+fn vertically_mirror_at_idx_and_sub(grid: &GridView, idx: usize) -> Grid {
     let num_cols = grid.shape()[1];
     if idx <= 0 || idx >= num_cols {
         panic!();
@@ -22,7 +22,11 @@ fn is_vertically_mirrored_at_idx(grid: &GridView, idx: usize) -> bool {
     let left = grid.slice(left_slice);
     let right = grid.slice(right_slice);
 
-    left.sub(&right).into_iter().filter(|x| *x != 0).count() == 0
+    left.sub(&right)
+}
+
+fn is_vertically_mirrored_at_idx(grid: &GridView, idx: usize) -> bool {
+    vertically_mirror_at_idx_and_sub(grid, idx).iter().all(|x| *x == 0)
 }
 
 fn find_vertical_mirror_line_idx(grid: &GridView) -> Option<usize> {
@@ -76,8 +80,41 @@ fn part1(lines: Vec<Vec<char>>) -> u32 {
         .sum()
 }
 
+fn has_smudge_vertically_mirrored_at_idx(grid: &GridView, idx: usize) -> bool {
+    let diff = vertically_mirror_at_idx_and_sub(grid, idx);
+    diff.iter().enumerate().filter_map(|(idx, elem)| {
+     if *elem != 0 {
+         return Some(idx);
+     }
+     None
+    }).count() == 1
+}
+
+fn find_vertical_mirror_line_smudged_idx(grid: &GridView) -> Option<usize> {
+    for idx in 1..(grid.shape()[1]) {
+        if has_smudge_vertically_mirrored_at_idx(grid, idx) {
+            return Some(idx);
+        }
+    }
+    None
+}
+fn get_grid_score2(grid: &GridView) -> u32 {
+    if let Some(idx) = find_vertical_mirror_line_smudged_idx(grid) {
+        return idx as u32;
+    }
+    if let Some(idx) = find_vertical_mirror_line_smudged_idx(&grid.t()) {
+        return idx as u32 * 100;
+    }
+    println!("{}", grid);
+    unreachable!();
+}
+
 fn part2(lines: Vec<Vec<char>>) -> u32 {
-    0
+    let grids = lines_to_grids(lines);
+    grids
+        .iter()
+        .map(|grid: &Grid| get_grid_score2(&grid.view()))
+        .sum()
 }
 
 fn read_file_lines(filename: &str) -> Vec<Vec<char>> {
@@ -199,14 +236,12 @@ mod tests {
         }
     }
 
-    /*
-        #[test]
-        fn part2_e2e() {
-            let examples = get_part1_examples();
-            let answers: Vec<u32> = vec![300, 100, 400];
-            for (example, answer) in examples.iter().zip(answers.iter()) {
-                assert_eq!(part2(example.clone()), *answer);
-            }
+    #[test]
+    fn part2_e2e() {
+        let examples = get_part1_examples();
+        let answers: Vec<u32> = vec![300, 100, 400];
+        for (example, answer) in examples.iter().zip(answers.iter()) {
+            assert_eq!(part2(example.clone()), *answer);
+        }
     }
-        */
 }
