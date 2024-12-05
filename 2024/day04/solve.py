@@ -40,22 +40,25 @@ class Matrix:
         except IndexError:
             return '.'
 
-    def get_word_at(self, starting_idx, direction, length=None):
+    def get_word_at(self, starting_idx, direction, length):
         indices = idx_generator(starting_idx, direction)
         search_word = (self.get(x, y) for (x, y) in indices)
-        if length is not None:
-            search_word = take(length, search_word)
-        return search_word
+        search_word = take(length, search_word)
+        return "".join(search_word)
 
-def search_for_target(matrix, starting_idx, target=['x', 'm', 'a', 's']):
+    def get_cross_at(self, idx):
+        a = self.get_word_at((idx[0] - 1, idx[1] - 1), (1, 1), 3)
+        b = self.get_word_at((idx[0] - 1, idx[1] + 1), (1, -1), 3)
+        return "".join(a), "".join(b)
+
+def search_for_target(matrix, starting_idx, target='xmas'):
     search_directions = list(itertools.product([-1, 0, 1], [-1, 0, 1]))
     search_directions.remove((0,0))
 
     targets_found = 0
     for search_direction in search_directions:
-        search_word = matrix.get_word_at(starting_idx, search_direction)
-        found = all((x == y for (x, y) in zip(target, search_word)))
-        targets_found += found
+        search_word = matrix.get_word_at(starting_idx, search_direction, 4)
+        targets_found += search_word == target
     return targets_found
 
 def part1(input_file):
@@ -68,9 +71,22 @@ def part1(input_file):
                 sum += search_for_target(matrix, (row_idx, col_idx))
     return sum
 
+def is_mas(target):
+    return target == 'mas' or target == 'sam'
+
+def check_cross(matrix, center_idx):
+    a, b = matrix.get_cross_at(center_idx)
+    return is_mas(a) and is_mas(b)
+
 def part2(input_file):
     matrix = get_matrix(input_file)
-    pass
+    sum = 0
+    for row_idx, row in enumerate(matrix.matrix):
+        for col_idx, _ in enumerate(row):
+            if matrix.matrix[row_idx][col_idx] == 'a':
+                sum += check_cross(matrix, (row_idx, col_idx))
+    return sum
+
 
 def main():
     parser = argparse.ArgumentParser()
