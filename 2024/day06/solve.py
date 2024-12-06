@@ -2,6 +2,7 @@ import re
 import argparse
 import itertools
 from collections import defaultdict
+from tqdm import trange
 
 def get_lines(input_file):
     with open(input_file, 'r') as infile:
@@ -30,10 +31,23 @@ def get_intersection_idx(direction, pos):
         raise RuntimeError()
 
 class Layout:
-    def __init__(self, input_file):
+    def __init__(self, obstacles, dimensions, guard_pos):
+        self.obstacles = obstacles
+        self.dimensions = dimensions
+        self.guard_pos = guard_pos
+
+        self.cells_visited = {self.guard_pos}
+        self.virtual_walls = set()
+        self.new_blockades = set()
+        self.guard_direction = (-1, 0)
+        self.cycle_detection = {(self.guard_pos, self.guard_direction)}
+
+
+    @staticmethod
+    def from_file(input_file):
         lines = get_lines(input_file)
 
-        self.obstacles = set()
+        obstacles = set()
         num_lines = 0
         for row_idx, line in enumerate(lines):
             row = [x for x in line.strip()]
@@ -41,25 +55,18 @@ class Layout:
             num_lines += 1
             for col_idx, element in enumerate(row):
                 if element == "#":
-                    self.obstacles.add((row_idx, col_idx))
+                    obstacles.add((row_idx, col_idx))
                 elif element == "^":
-                    self.guard_pos = (row_idx, col_idx)
-                    self.guard_direction = (-1, 0)
+                    guard_pos = (row_idx, col_idx)
 
         # TODO: do loop variables exist after the for loop ends?
-        self.dimensions = (num_lines, num_cols)
-        self.cells_visited = {self.guard_pos}
-        self.virtual_walls = set()
-        self.new_blockades = set()
+        dimensions = (num_lines, num_cols)
+        return Layout(obstacles, dimensions, guard_pos)
 
     def rotate_guard(self):
         self.guard_direction = ninety_degrees(self.guard_direction)
 
-    def move_guard(self) -> bool:
-        self.virtual_walls.add(
-            (self.guard_direction, get_intersection_idx(self.guard_direction, self.guard_pos))
-        )
-
+    def walk(self) -> bool:
         while True:
             new_guard_pos = (self.guard_pos[0] + self.guard_direction[0],
                              self.guard_pos[1] + self.guard_direction[1])
@@ -67,29 +74,36 @@ class Layout:
                new_guard_pos[1] >= self.dimensions[1] or \
                new_guard_pos[0] < 0 or \
                new_guard_pos[1] < 0:
-                return True
-            elif new_guard_pos in self.obstacles:
                 return False
+            elif new_guard_pos in self.obstacles:
+                self.rotate_guard()
+                continue
 
-            rotated_direction = ninety_degrees(self.guard_direction)
-            cycle_wall = (rotated_direction, get_intersection_idx(rotated_direction, self.guard_pos))
-            if cycle_wall in self.virtual_walls:
-                self.new_blockades.add(new_guard_pos)
+            pos_and_dir = (new_guard_pos, self.guard_direction)
+            if pos_and_dir in self.cycle_detection:
+                return True
 
             self.guard_pos = new_guard_pos
             self.cells_visited.add(new_guard_pos)
+            self.cycle_detection.add(pos_and_dir)
 
 def part1(input_file):
-    layout = Layout(input_file)
-    while not layout.move_guard():
-        layout.rotate_guard()
+    layout = Layout.from_file(input_file)
+    layout.walk()
     return len(layout.cells_visited)
 
 def part2(input_file):
-    layout = Layout(input_file)
-    while not layout.move_guard():
-        layout.rotate_guard()
-    return len(layout.new_blockades)
+    layout = Layout.from_file(input_file)
+    num_warps = 0
+    for row_idx in trange(layout.dimensions[0]):
+        for col_idx in range(layout.dimensions[1]):
+            if (row_idx, col_idx) in layout.obstacles:
+                continue
+            new_obstacles = layout.obstacles.copy()
+            new_obstacles.add((row_idx, col_idx))
+            new_layout = Layout(new_obstacles, layout.dimensions, layout.guard_pos)
+            num_warps += new_layout.walk()
+    return num_warps
 
 def main():
     parser = argparse.ArgumentParser()
