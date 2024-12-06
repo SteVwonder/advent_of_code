@@ -94,14 +94,19 @@ def part1(input_file):
 
 def part2(input_file):
     layout = Layout.from_file(input_file)
+    orig_guard_pos = layout.guard_pos
+    layout.walk()
     num_warps = 0
     for row_idx in trange(layout.dimensions[0]):
         for col_idx in range(layout.dimensions[1]):
-            if (row_idx, col_idx) in layout.obstacles:
+            pos = (row_idx, col_idx)
+            if pos in layout.obstacles:
+                continue
+            if pos not in layout.cells_visited:
                 continue
             new_obstacles = layout.obstacles.copy()
-            new_obstacles.add((row_idx, col_idx))
-            new_layout = Layout(new_obstacles, layout.dimensions, layout.guard_pos)
+            new_obstacles.add(pos)
+            new_layout = Layout(new_obstacles, layout.dimensions, orig_guard_pos)
             num_warps += new_layout.walk()
     return num_warps
 
