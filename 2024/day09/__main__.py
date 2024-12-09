@@ -53,8 +53,59 @@ def part1(input_file):
     filesystem_layout = gen_filesystem_layout(input_file)
     return sum((x*y) for (x,y) in enumerate(filesystem_layout))
 
+def get_idx_and_size(vals):
+    curr_idx = 0
+    vals = (int(x) for x in vals)
+    for size in vals:
+        yield (curr_idx, size)
+        curr_idx += size
+
+def get_idx_free_chunk_large_enough(free_chunks, size) -> tuple[int, int, int]:
+    for free_idx, (fs_idx, val) in enumerate(free_chunks):
+        if val >= size:
+            return (free_idx, fs_idx, val)
+    return (-1, -1, 0)
+
+def gen_filesystem_layout_p2(input_file):
+    line = next(get_lines(input_file)).strip()
+    idxs_and_sizes = list(get_idx_and_size(line.strip()))
+    allocated = deque(enumerate(itertools.islice(idxs_and_sizes, 0, None, 2)))
+    free_chunks = [x for x in itertools.islice(idxs_and_sizes, 1, None, 2) if x[1] > 0]
+    filesystem = [-1] * (sum([size for (_,(_,size)) in allocated]) + sum([size for (_,size) in free_chunks]))
+    fileID = 0
+
+    for fileID, (fs_idx, size) in allocated:
+        for _ in range(size):
+            filesystem[fs_idx] = fileID
+            fs_idx += 1
+
+    while True:
+        try:
+            # Moving from the backside
+            fileID, (allocated_fs_idx, size) = allocated.pop()
+            free_chunks = [(fs_idx, size) for (fs_idx, size) in free_chunks if fs_idx < allocated_fs_idx]
+            free_chunks_idx, fs_idx, free_size = get_idx_free_chunk_large_enough(free_chunks, size)
+            if fs_idx == -1:
+                continue
+            else:
+                for _ in range(size):
+                    filesystem[fs_idx] = fileID
+                    fs_idx += 1
+                    filesystem[allocated_fs_idx] = -1
+                    allocated_fs_idx += 1
+                new_size = free_size - size
+                if new_size > 0:
+                    free_chunks[free_chunks_idx] = (fs_idx, new_size)
+                else:
+                    free_chunks.pop(free_chunks_idx)
+
+        except IndexError:
+            break
+    return filesystem
+
 def part2(input_file):
-    pass
+    filesystem_layout = gen_filesystem_layout_p2(input_file)
+    return sum((x*y) for (x,y) in enumerate(filesystem_layout) if y >= 0)
 
 def main():
     parser = argparse.ArgumentParser()
