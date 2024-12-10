@@ -106,8 +106,8 @@ def part1(map):
 
 def part2(map):
     answer = 0
-    for (source, target) in itertools.product(map.starting_points, map.ending_points):
-        for _ in nx.all_simple_paths(map.graph, source, target):
+    for source in map.starting_points:
+        for _ in nx.all_simple_paths(map.graph, source, target=map.ending_points):
             answer += 1
     return answer
 
