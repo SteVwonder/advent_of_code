@@ -1,6 +1,8 @@
 import os
 import argparse
 
+from collections import Counter
+from functools import cache
 from itertools import chain
 
 def get_lines(input_file):
@@ -11,29 +13,46 @@ def get_lines(input_file):
 def flatmap(func, iterable):
     return chain.from_iterable(map(func, iterable))
 
-def expand_stone(stone):
+def expand_stone_once(stone) -> Counter:
     if stone == 0:
-        return [1]
+        return Counter([1])
 
     str_stone = str(stone)
     if len(str_stone) % 2 == 0:
         halfway = len(str_stone) // 2
-        return [int(x) for x in [str_stone[0:halfway], str_stone[halfway:]]]
+        return Counter([int(x) for x in [str_stone[0:halfway], str_stone[halfway:]]])
 
-    return [stone * 2024]
+    return Counter([stone * 2024])
 
-def expand_stones(input_file, times):
+def multiply_counter(counter, multiple) -> Counter:
+    for key in counter.keys():
+        counter[key] *= multiple
+    return counter
+
+@cache
+def expand_stone(stone, times) -> Counter:
+    if times == 1:
+        return expand_stone_once(stone)
+    else:
+        new_stones = Counter()
+        for stone, count in expand_stone(stone, times-1).items():
+            expansion = expand_stone_once(stone)
+            new_stones += multiply_counter(expansion, count)
+        return new_stones
+
+def expand_file(input_file, times):
     lines = get_lines(input_file)
     stones = [int(x) for x in next(lines).rstrip().split(" ")]
-    for _ in range(times):
-        stones = flatmap(expand_stone, stones)
-    return sum(1 for _ in stones)
+    answer = Counter()
+    for stone in stones:
+        answer += expand_stone(stone, times)
+    return answer.total()
 
 def part1(input_file):
-    return expand_stones(input_file, 25)
+    return expand_file(input_file, 25)
 
 def part2(input_file):
-    return expand_stones(input_file, 75)
+    return expand_file(input_file, 75)
 
 def main():
     parser = argparse.ArgumentParser()
