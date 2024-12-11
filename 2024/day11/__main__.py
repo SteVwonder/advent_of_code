@@ -1,47 +1,32 @@
 import os
 import argparse
 
-from collections import Counter
-from itertools import chain
-from tqdm import trange
+from functools import cache
 
 def get_lines(input_file):
     with open(input_file, 'r') as infile:
         for line in infile:
             yield line
 
-def flatmap(func, iterable):
-    return chain.from_iterable(map(func, iterable))
+@cache
+def blink(stone, times) -> int:
+    if times == 0:
+        return 1
+    else:
+        if stone == 0:
+            return blink(1, times-1)
 
-def expand_stone_once(stone) -> Counter:
-    if stone == 0:
-        return Counter([1])
+        str_stone = str(stone)
+        if len(str_stone) % 2 == 0:
+            halfway = len(str_stone) // 2
+            return blink(int(str_stone[0:halfway]), times-1) + blink(int(str_stone[halfway:]), times-1)
 
-    str_stone = str(stone)
-    if len(str_stone) % 2 == 0:
-        halfway = len(str_stone) // 2
-        return Counter([int(x) for x in [str_stone[0:halfway], str_stone[halfway:]]])
-
-    return Counter([stone * 2024])
-
-def multiply_counter(counter, multiple) -> Counter:
-    for key in counter.keys():
-        counter[key] *= multiple
-    return counter
-
-def expand_stones(stones) -> Counter:
-    new_stones = Counter()
-    for stone, count in stones.items():
-        expansion = expand_stone_once(stone)
-        new_stones += multiply_counter(expansion, count)
-    return new_stones
+        return blink(stone * 2024, times-1)
 
 def expand_file(input_file, times):
     lines = get_lines(input_file)
-    stones = Counter([int(x) for x in next(lines).rstrip().split(" ")])
-    for _ in trange(times):
-        stones = expand_stones(stones)
-    return stones.total()
+    stones = [int(x) for x in next(lines).rstrip().split(" ")]
+    return sum(blink(stone, times) for stone in stones)
 
 def part1(input_file):
     return expand_file(input_file, 25)
