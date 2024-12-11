@@ -2,8 +2,8 @@ import os
 import argparse
 
 from collections import Counter
-from functools import cache
 from itertools import chain
+from tqdm import trange
 
 def get_lines(input_file):
     with open(input_file, 'r') as infile:
@@ -29,24 +29,19 @@ def multiply_counter(counter, multiple) -> Counter:
         counter[key] *= multiple
     return counter
 
-@cache
-def expand_stone(stone, times) -> Counter:
-    if times == 1:
-        return expand_stone_once(stone)
-    else:
-        new_stones = Counter()
-        for stone, count in expand_stone(stone, times-1).items():
-            expansion = expand_stone_once(stone)
-            new_stones += multiply_counter(expansion, count)
-        return new_stones
+def expand_stones(stones) -> Counter:
+    new_stones = Counter()
+    for stone, count in stones.items():
+        expansion = expand_stone_once(stone)
+        new_stones += multiply_counter(expansion, count)
+    return new_stones
 
 def expand_file(input_file, times):
     lines = get_lines(input_file)
-    stones = [int(x) for x in next(lines).rstrip().split(" ")]
-    answer = Counter()
-    for stone in stones:
-        answer += expand_stone(stone, times)
-    return answer.total()
+    stones = Counter([int(x) for x in next(lines).rstrip().split(" ")])
+    for _ in trange(times):
+        stones = expand_stones(stones)
+    return stones.total()
 
 def part1(input_file):
     return expand_file(input_file, 25)
