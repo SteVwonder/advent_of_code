@@ -4,6 +4,7 @@ import argparse
 from itertools import chain, product
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 def get_lines(input_file):
     with open(input_file, 'r') as infile:
@@ -46,23 +47,26 @@ class Map:
         return Map(graph)
 
     def visualize(self):
-        # Position nodes based on their coordinates
+        plt.figure(figsize=(10, 10))
+
         pos = {node: (node[1], -node[0]) for node in self.graph.nodes()}
 
         labels = nx.get_node_attributes(self.graph, 'crop')
-
-        # Draw the graph
-        plt.figure(figsize=(10, 10))
+        unique_labels = list(set(labels.values()))
+        n = len(unique_labels)
+        cmap = plt.cm.get_cmap('tab20')  # You can change 'tab20' to any other colormap
+        color_map = {label: mcolors.rgb2hex(cmap(i/n)) for i, label in enumerate(unique_labels)}
+        node_colors = [color_map[labels[node]] for node in self.graph.nodes()]
 
         nx.draw(self.graph,
                 pos,
                 with_labels=True,
                 labels=labels,
-                node_size=500,
-                node_color='lightblue',
-                font_size=10,
+                node_size=100,
+                node_color=node_colors,
+                font_size=6,
                 font_color="black",
-                arrowsize=20)
+                arrowsize=10)
 
         plt.tight_layout()
         plt.show()
