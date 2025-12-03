@@ -18,26 +18,34 @@ fn get_max(slice: &[u8]) -> (usize, u8) {
         .expect("Cannot find max of empty slice")
 }
 
-fn get_joltage(bank: &Bank) -> u64 {
-    if bank.len() <= 1 {
+fn get_joltage(bank: &Bank, num_batteries: usize) -> u64 {
+    if bank.len() <= 1 || num_batteries == 0 {
         return 0;
     }
 
-    let (max_idx, max_val) = get_max(bank);
-    let (first_digit, second_digit) = if max_idx == bank.len() - 1 {
-        (get_max(&bank[..max_idx]).1, max_val)
-    } else {
-        (max_val, get_max(&bank[max_idx + 1..]).1)
-    };
-    first_digit as u64 * 10 + second_digit as u64
+    // Choose num_batteries batteries, greedy from left to right, always picking the max in the current window.
+    let mut result = Vec::with_capacity(num_batteries);
+    let mut start_idx = 0;
+    let len = bank.len();
+    for b in 0..num_batteries {
+        let batteries_left = num_batteries - b;
+        let limit = len - batteries_left;
+        let window = &bank[start_idx..=limit];
+        let (rel_max_idx, max_val) = get_max(window);
+        let abs_max_idx = start_idx + rel_max_idx;
+        result.push(max_val);
+        start_idx = abs_max_idx + 1;
+    }
+    // Compose the u64 by concatenating digits, i.e., [9, 8, 7] -> 987
+    result.iter().fold(0u64, |acc, &d| acc * 10 + d as u64)
 }
 
 fn part1(banks: &[Bank]) -> u64 {
-    banks.iter().map(get_joltage).sum()
+    banks.iter().map(|bank| get_joltage(bank, 2)).sum()
 }
 
 fn part2(banks: &[Bank]) -> u64 {
-    0
+    banks.iter().map(|bank| get_joltage(bank, 12)).sum()
 }
 
 // line contains a list of digits (e.g., 1234542398593)
