@@ -5,37 +5,30 @@ use std::path::Path;
 
 type Bank = Vec<u8>;
 
-fn get_max(bank: &Bank, start_idx: usize, end_idx: usize) -> (usize, u8) {
-    // Find the index of the maximum u8 value in the slice of the bank from start_idx (inclusive) to end_idx (exclusive)
-    if start_idx >= bank.len() || end_idx > bank.len() || start_idx >= end_idx {
-        panic!(
-            "Invalid range: start_idx {} end_idx {} for bank of len {}",
-            start_idx, end_idx, bank.len()
-        );
-    }
-    let mut max_val = None;
-    let mut max_idx = start_idx;
-    for (i, &v) in bank.iter().enumerate().take(end_idx).skip(start_idx) {
-        if max_val.is_none() || v > max_val.unwrap() {
-            max_val = Some(v);
-            max_idx = i;
-        }
-    }
-    (max_idx, max_val.unwrap())
+fn get_max(slice: &[u8]) -> (usize, u8) {
+    // Find the index and value of the FIRST maximum u8 in the slice
+    slice
+        .iter()
+        .enumerate()
+        .fold(None, |acc, (i, &v)| match acc {
+            None => Some((i, v)),
+            Some((_, max_v)) if v > max_v => Some((i, v)),
+            _ => acc,
+        })
+        .expect("Cannot find max of empty slice")
 }
 
 fn get_joltage(bank: &Bank) -> u64 {
-    let mut first_digit = 0;
-    let mut second_digit = 0;
-
-    let (max_idx, max_val) = get_max(bank, 0, bank.len());
-    if max_idx == bank.len() - 1 {
-        first_digit = get_max(bank, 0, max_idx).1;
-        second_digit = max_val;
-    } else {
-        first_digit = max_val;
-        second_digit = get_max(bank, max_idx + 1, bank.len()).1;
+    if bank.len() <= 1 {
+        return 0;
     }
+
+    let (max_idx, max_val) = get_max(bank);
+    let (first_digit, second_digit) = if max_idx == bank.len() - 1 {
+        (get_max(&bank[..max_idx]).1, max_val)
+    } else {
+        (max_val, get_max(&bank[max_idx + 1..]).1)
+    };
     first_digit as u64 * 10 + second_digit as u64
 }
 
