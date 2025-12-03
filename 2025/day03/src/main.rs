@@ -10,11 +10,8 @@ fn get_max(slice: &[u8]) -> (usize, u8) {
     slice
         .iter()
         .enumerate()
-        .fold(None, |acc, (i, &v)| match acc {
-            None => Some((i, v)),
-            Some((_, max_v)) if v > max_v => Some((i, v)),
-            _ => acc,
-        })
+        .reduce(|acc, (i, v)| if v > acc.1 { (i, v) } else { acc })
+        .map(|(i, &v)| (i, v))
         .expect("Cannot find max of empty slice")
 }
 
@@ -23,21 +20,18 @@ fn get_joltage(bank: &Bank, num_batteries: usize) -> u64 {
         return 0;
     }
 
-    // Choose num_batteries batteries, greedy from left to right, always picking the max in the current window.
-    let mut result = Vec::with_capacity(num_batteries);
-    let mut start_idx = 0;
+    // Choose num_batteries batteries, greedy from left to right
+    // State: (start_idx, accumulated_result)
     let len = bank.len();
-    for b in 0..num_batteries {
-        let batteries_left = num_batteries - b;
-        let limit = len - batteries_left;
-        let window = &bank[start_idx..=limit];
-        let (rel_max_idx, max_val) = get_max(window);
-        let abs_max_idx = start_idx + rel_max_idx;
-        result.push(max_val);
-        start_idx = abs_max_idx + 1;
-    }
-    // Compose the u64 by concatenating digits, i.e., [9, 8, 7] -> 987
-    result.iter().fold(0u64, |acc, &d| acc * 10 + d as u64)
+    (0..num_batteries)
+        .fold((0, 0u64), |(start_idx, acc), b| {
+            let batteries_left = num_batteries - b;
+            let limit = len - batteries_left;
+            let window = &bank[start_idx..=limit];
+            let (rel_max_idx, max_val) = get_max(window);
+            (start_idx + rel_max_idx + 1, acc * 10 + max_val as u64)
+        })
+        .1 // Extract the accumulated result
 }
 
 fn part1(banks: &[Bank]) -> u64 {
@@ -48,18 +42,9 @@ fn part2(banks: &[Bank]) -> u64 {
     banks.iter().map(|bank| get_joltage(bank, 12)).sum()
 }
 
-// line contains a list of digits (e.g., 1234542398593)
 fn parse_line(line: &str) -> Bank {
     line.chars()
-        .map(|battery| {
-            let parsed = battery.to_digit(10)
-                .expect("Invalid battery character") as u8;
-            if parsed <= 9 {
-                parsed
-            } else {
-                panic!("Battery digit out of range 0-9: {}", parsed)
-            }
-        })
+        .map(|c| c.to_digit(10).expect("Invalid digit") as u8)
         .collect()
 }
 
@@ -93,5 +78,5 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 }
