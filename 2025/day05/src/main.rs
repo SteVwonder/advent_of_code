@@ -12,8 +12,17 @@ fn part1(ranges: &[Range<u64>], points: &[u64]) -> u64 {
     points.iter().filter(|&point| point_in_ranges(*point, ranges)).count() as u64
 }
 
-fn part2(ranges: &[Range<u64>], points: &[u64]) -> u64 {
-0
+fn part2(ranges: &mut [Range<u64>]) -> u64 {
+    ranges.sort_by(|a, b| a.start.cmp(&b.start));
+
+    let mut current_idx = 0;
+    let mut result = 0;
+    for range in ranges {
+        current_idx = std::cmp::max(current_idx, range.start);
+        result += range.end.saturating_sub(current_idx);
+        current_idx = std::cmp::max(current_idx, range.end);
+    }
+    result
 }
 
 fn parse_range(line: &str) -> Range<u64> {
@@ -49,7 +58,7 @@ fn solve(filename: &Path) -> Result<(), Box<dyn Error>> {
 
 
     println!("\tPart 1: {}", part1(&ranges, &points));
-    println!("\tPart 2: {}", part2(&ranges, &points));
+    println!("\tPart 2: {}", part2(&mut ranges));
     Ok(())
 }
 
