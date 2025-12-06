@@ -1,8 +1,7 @@
 use std::error::Error;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::fs;
 use std::ops::Range;
+use std::path::Path;
 
 fn point_in_ranges(point: u64, ranges: &[Range<u64>]) -> bool {
     ranges.iter().any(|range| range.contains(&point))
@@ -13,49 +12,47 @@ fn part1(ranges: &[Range<u64>], points: &[u64]) -> u64 {
 }
 
 fn part2(ranges: &mut [Range<u64>]) -> u64 {
-    ranges.sort_by(|a, b| a.start.cmp(&b.start));
+    ranges.sort_by_key(|r| r.start);
 
-    let mut current_idx = 0;
-    let mut result = 0;
-    for range in ranges {
-        current_idx = std::cmp::max(current_idx, range.start);
-        result += range.end.saturating_sub(current_idx);
-        current_idx = std::cmp::max(current_idx, range.end);
+    let mut covered_until = 0;
+    let mut total_coverage = 0;
+    for range in ranges.iter() {
+        let effective_start = covered_until.max(range.start);
+        total_coverage += range.end.saturating_sub(effective_start);
+        covered_until = covered_until.max(range.end);
     }
-    result
+    total_coverage
 }
 
-fn parse_range(line: &str) -> Range<u64> {
-    let (start, end) = line.split_once('-').unwrap();
-    Range {
-        start: start.parse().unwrap(),
+fn parse_range(line: &str) -> Result<Range<u64>, Box<dyn Error>> {
+    let (start, end) = line.split_once('-')
+        .ok_or("Invalid range format: missing '-'")?;
+    Ok(Range {
+        start: start.parse()?,
         // the problem states the ranges are inclusive on both ends, Range is exclusive on the end
         // so we add 1 to the end to make it inclusive
-        end: end.parse::<u64>().unwrap() + 1,
-    }
+        end: end.parse::<u64>()? + 1,
+    })
 }
 
 fn solve(filename: &Path) -> Result<(), Box<dyn Error>> {
-    let file = File::open(filename)?;
-    let reader = BufReader::new(file);
+    let content = fs::read_to_string(filename)?;
+    let mut sections = content.split("\n\n");
 
-    let mut lines = reader.lines();
-    let mut ranges = Vec::new();
+    let mut ranges: Vec<Range<u64>> = sections
+        .next()
+        .ok_or("Missing ranges section")?
+        .lines()
+        .map(|line| parse_range(line))
+        .collect::<Result<_, _>>()?;
 
-    // Collect all lines until empty line using take_while
-    ranges.extend(
-        lines
-            .by_ref()
-            .map(|l| l.unwrap())
-            .take_while(|line| !line.trim().is_empty())
-            .map(|line| parse_range(&line))
-    );
-
-    // Collect remaining lines into point until EOF in a functional way
-    let points: Vec<u64> = lines
-        .map(|line| line.unwrap().parse::<u64>().unwrap())
-        .collect();
-
+    let points: Vec<u64> = sections
+        .next()
+        .ok_or("Missing points section")?
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(|l| l.parse())
+        .collect::<Result<_, _>>()?;
 
     println!("\tPart 1: {}", part1(&ranges, &points));
     println!("\tPart 2: {}", part2(&mut ranges));
