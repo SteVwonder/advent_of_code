@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 #[derive(PartialEq,Eq,Hash,Clone,Debug)]
 enum Cell {
@@ -49,8 +49,32 @@ fn part1(contents: &str) -> u64 {
     num_splits as u64
 }
 
+fn insert_or_add(map: &mut HashMap<usize, u64>, key: usize, value: u64) {
+    *map.entry(key).or_insert(0) += value;
+}
+
 fn part2(contents: &str) -> u64 {
-0
+    let grid = parse_contents(contents).unwrap();
+
+    let starting_row = grid.iter().next().unwrap();
+    let starting_idx = starting_row.iter().position(|c| c == &Cell::Entrance).unwrap();
+
+    let mut current_row = HashMap::new();
+    current_row.insert(starting_idx, 1);
+
+    for row in grid.iter().skip(1) {
+        let mut new_row = HashMap::new();
+        for (col_idx, count) in current_row.iter() {
+            if row[*col_idx] == Cell::Splitter {
+                insert_or_add(&mut new_row, col_idx + 1, *count);
+                insert_or_add(&mut new_row, col_idx - 1, *count);
+            } else {
+                insert_or_add(&mut new_row, *col_idx, *count);
+            }
+        }
+        current_row = new_row;
+    }
+    current_row.values().sum()
 }
 
 fn solve(filename: &Path) -> Result<(), Box<dyn Error>> {
