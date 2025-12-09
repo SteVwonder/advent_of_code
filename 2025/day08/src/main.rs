@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt;
 use std::fs;
 use std::path::Path;
 
@@ -9,23 +8,13 @@ use petgraph::Graph;
 use petgraph::algo::{tarjan_scc, connected_components};
 use petgraph::prelude::*;
 
-#[derive(Debug,PartialEq,Eq,Hash,Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct Junction {
     coords: [i64; 3],
 }
 
-impl fmt::Display for Junction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{},{},{}", self.coords[0], self.coords[1], self.coords[2])
-    }
-}
-
 impl Junction {
-    fn new(x: i64, y: i64, z: i64) -> Self {
-        Self { coords: [x, y, z] }
-    }
-
-    fn from_array(coords: [i64; 3]) -> Self {
+    fn new(coords: [i64; 3]) -> Self {
         Self { coords }
     }
 
@@ -43,37 +32,40 @@ impl Junction {
     }
 }
 
-fn parse_contents(contents: &str) -> Result<Vec<Junction>, Box<dyn Error>> {
-    Ok(contents.lines().map(|line| {
+fn parse_contents(contents: &str) -> Vec<Junction> {
+    contents.lines().map(|line| {
         let coords: [i64; 3] = line.split(',')
-            .map(|x| x.parse::<i64>().unwrap())
+            .map(|x| x.parse::<i64>().expect("invalid number"))
             .collect::<Vec<_>>()
             .try_into()
             .expect("Expected exactly 3 coordinates");
-        Junction::from_array(coords)
-    }).collect())
+        Junction::new(coords)
+    }).collect()
+}
+
+fn build_graph(junctions: &[Junction]) -> (Graph<(), (), Undirected>, HashMap<&Junction, NodeIndex>) {
+    let mut graph = Graph::new_undirected();
+    let node_map: HashMap<&Junction, NodeIndex> = junctions
+        .iter()
+        .map(|j| (j, graph.add_node(())))
+        .collect();
+    (graph, node_map)
 }
 
 fn part1(contents: &str, n: usize) -> i64 {
-    let junctions = parse_contents(contents).unwrap();
+    let junctions = parse_contents(contents);
     let distances: Vec<_> = junctions.iter().tuple_combinations()
         .map(|(a, b)| (a, b, a.distance_squared(b)))
         .sorted_by_key(|(_, _, distance)| *distance)
         .take(n)
         .collect();
 
-    let mut graph = Graph::new_undirected();
-    let mut node_map: HashMap<String, NodeIndex> = HashMap::new();
-
-    for junction in &junctions {
-        let idx = graph.add_node(0);
-        node_map.insert(junction.to_string(), idx);
-    }
+    let (mut graph, node_map) = build_graph(&junctions);
 
     for (a, b, _distance) in distances {
-        let a_idx = node_map.get(&a.to_string()).unwrap();
-        let b_idx = node_map.get(&b.to_string()).unwrap();
-        graph.add_edge(*a_idx, *b_idx, 1);
+        let a_idx = node_map[a];
+        let b_idx = node_map[b];
+        graph.add_edge(a_idx, b_idx, ());
     }
 
     let sccs = tarjan_scc(&graph);
@@ -81,24 +73,18 @@ fn part1(contents: &str, n: usize) -> i64 {
 }
 
 fn part2(contents: &str, n: usize) -> i64 {
-    let junctions = parse_contents(contents).unwrap();
+    let junctions = parse_contents(contents);
     let distances: Vec<_> = junctions.iter().tuple_combinations()
         .map(|(a, b)| (a, b, a.distance_squared(b)))
         .sorted_by_key(|(_, _, distance)| *distance)
         .collect();
 
-    let mut graph = Graph::new_undirected();
-    let mut node_map: HashMap<String, NodeIndex> = HashMap::new();
-
-    for junction in &junctions {
-        let idx = graph.add_node(0);
-        node_map.insert(junction.to_string(), idx);
-    }
+    let (mut graph, node_map) = build_graph(&junctions);
 
     for (idx, (a, b, _distance)) in distances.iter().enumerate() {
-        let a_idx = node_map.get(&a.to_string()).unwrap();
-        let b_idx = node_map.get(&b.to_string()).unwrap();
-        graph.add_edge(*a_idx, *b_idx, 1);
+        let a_idx = node_map[a];
+        let b_idx = node_map[b];
+        graph.add_edge(a_idx, b_idx, ());
         if idx > n && connected_components(&graph) == 1 {
             return a.coords[0] * b.coords[0];
         }
