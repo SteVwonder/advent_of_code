@@ -5,8 +5,9 @@ use std::path::Path;
 
 use itertools::Itertools;
 use petgraph::Graph;
-use petgraph::algo::{tarjan_scc, connected_components};
+use petgraph::algo::tarjan_scc;
 use petgraph::prelude::*;
+use petgraph::unionfind::UnionFind;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct Junction {
@@ -74,18 +75,20 @@ fn part1(contents: &str, n: usize) -> i64 {
 
 fn part2(contents: &str, n: usize) -> i64 {
     let junctions = parse_contents(contents);
-    let distances: Vec<_> = junctions.iter().tuple_combinations()
-        .map(|(a, b)| (a, b, a.distance_squared(b)))
-        .sorted_by_key(|(_, _, distance)| *distance)
+    let distances: Vec<_> = junctions.iter().enumerate().tuple_combinations()
+        .map(|((i, a), (j, b))| (i, j, a, b, a.distance_squared(b)))
+        .sorted_by_key(|(_, _, _, _, distance)| *distance)
         .collect();
 
-    let (mut graph, node_map) = build_graph(&junctions);
+    let mut uf = UnionFind::<usize>::new(junctions.len());
+    let mut num_components = junctions.len();
 
-    for (idx, (a, b, _distance)) in distances.iter().enumerate() {
-        let a_idx = node_map[a];
-        let b_idx = node_map[b];
-        graph.add_edge(a_idx, b_idx, ());
-        if idx > n && connected_components(&graph) == 1 {
+    for (idx, (i, j, a, b, _distance)) in distances.iter().enumerate() {
+        // union returns false if they were already in the same set
+        if uf.union(*i, *j) {
+            num_components -= 1;
+        }
+        if idx > n && num_components == 1 {
             return a.coords[0] * b.coords[0];
         }
     }
